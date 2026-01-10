@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package infergate.v1;
+
+option go_package = "github.com/erangamapa/infergate/gen/infergate/v1;infergatev1";
+
+// Inference is the only door agents use to reach a model. Callers ask for a
+// model alias or a tier, the gateway decides which backend actually serves it.
+service Inference {
+  rpc Complete(CompleteRequest) returns (CompleteResponse);
+  rpc StreamComplete(CompleteRequest) returns (stream CompleteChunk);
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+}
+
+enum Tier {
+  TIER_UNSPECIFIED = 0;
+  // small self hosted models, cheap and fast, good for routing and labels
+  TIER_FAST = 1;
+  // the default for drafting and tool use
+  TIER_STANDARD = 2;
+  // the expensive models, reserved for judgement calls
+  TIER_DEEP = 3;
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_SYSTEM = 1;
+  ROLE_USER = 2;
+  ROLE_ASSISTANT = 3;
+}
+
+message Message {
+  Role role = 1;
+  string content = 2;
+}
+
+message CompleteRequest {
+  // either model or tier must be set, model wins when both are present
+  string model = 1;
+  Tier tier = 2;
+  repeated Message messages = 3;
+  int32 max_tokens = 4;
+  float temperature = 5;
+  repeated string stop = 6;
+  // caller supplied key, a retried request with the same key is served once
+  string idempotency_key = 7;
+  map<string, string> labels = 8;
+}
+
+message Usage {
+  int32 input_tokens = 1;
+  int32 output_tokens = 2;
+}
+
+enum FinishReason {
+  FINISH_REASON_UNSPECIFIED = 0;
+  FINISH_REASON_STOP = 1;
+  FINISH_REASON_LENGTH = 2;
+  FINISH_REASON_ERROR = 3;
+}
+
+message CompleteResponse {
+  string id = 1;
+  string text = 2;
+  // the backend model that served the request, after fallback
+  string served_by = 3;
+  Usage usage = 4;
+  FinishReason finish_reason = 5;
+  int32 attempts = 6;
+}
+
+message CompleteChunk {
+  string delta = 1;
+  // set on the last chunk only
+  Usage usage = 2;
+  string served_by = 3;
+  FinishReason finish_reason = 4;
+}
+
+message ListModelsRequest {}
+
+message ModelInfo {
+  string alias = 1;
+  Tier tier = 2;
+  repeated string backends = 3;
+}
+
+message ListModelsResponse {
+  repeated ModelInfo models = 1;
+}
