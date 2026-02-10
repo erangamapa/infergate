@@ -1,0 +1,62 @@
+# keys below are digests of dev-pulse-agents, dev-vip-concierge and dev-evalgate
+listen: ":7443"
+attempt_timeout: 45s
+breaker:
+  threshold: 5
+  cooldown: 30s
+
+backends:
+  - name: qwen-vllm
+    kind: openai
+    base_url: http://vllm-qwen.inference.svc.cluster.local:8000
+    model: erangamapa/tweet-outcome-classifier-qwen2.5-1.5b-qlora
+  - name: llama-drafter-vllm
+    kind: openai
+    base_url: http://vllm-llama.inference.svc.cluster.local:8000
+    model: erangamapa/bet-brief-drafter-llama-3.1-8b-qlora
+  - name: haiku
+    kind: anthropic
+    model: claude-haiku-4-5
+    api_key_env: ANTHROPIC_API_KEY
+  - name: sonnet
+    kind: anthropic
+    model: claude-sonnet-4-5
+    api_key_env: ANTHROPIC_API_KEY
+  - name: gpt-4o
+    kind: openai
+    base_url: https://api.openai.com
+    model: gpt-4o
+    api_key_env: OPENAI_API_KEY
+
+routes:
+  - alias: tweet-classifier
+    tier: fast
+    backends: [qwen-vllm, haiku]
+  - alias: brief-drafter
+    tier: standard
+    backends: [llama-drafter-vllm, sonnet, gpt-4o]
+  - alias: analyst
+    tier: deep
+    backends: [sonnet, gpt-4o]
+
+tenants:
+  - name: pulse-agents
+    key_sha256: 6f9002d788a0fe3d59d492dc344e99b48fc52557c4008784bc3512f64b56dcb2
+    requests_per_second: 40
+    burst: 80
+    daily_tokens: 40000000
+  - name: vip-concierge
+    key_sha256: a044af2c070f4614e94df13a95164439e8278dca30ddda0387c49dbb865cf5c5
+    requests_per_second: 10
+    burst: 20
+    daily_tokens: 8000000
+  - name: evalgate
+    key_sha256: 43c4e113c8eb4f5686c90b867481cb34eb0f74f85a79a12dce13d03fac518a21
+    requests_per_second: 5
+    burst: 5
+    daily_tokens: 2000000
+
+default_tenant_policy:
+  requests_per_second: 1
+  burst: 2
+  daily_tokens: 100000
