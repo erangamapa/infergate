@@ -38,6 +38,23 @@ func TestSuccessResetsCount(t *testing.T) {
 	}
 }
 
+func TestHalfOpenSingleProbe(t *testing.T) {
+	c := &clock{t: time.Unix(0, 0)}
+	b := NewWithClock(1, 30*time.Second, c.now)
+	b.Failure()
+	c.advance(31 * time.Second)
+	if !b.Allow() {
+		t.Fatalf("probe should be allowed after cooldown")
+	}
+	if b.Allow() {
+		t.Fatalf("only one probe at a time")
+	}
+	b.Success()
+	if b.State() != Closed {
+		t.Fatalf("good probe should close, got %s", b.State())
+	}
+}
+
 func TestFailedProbeReopens(t *testing.T) {
 	c := &clock{t: time.Unix(0, 0)}
 	b := NewWithClock(5, 10*time.Second, c.now)
