@@ -66,6 +66,10 @@ func (b *Breaker) Allow() bool {
 		b.probing = true
 		return true
 	case HalfOpen:
+		if b.probing {
+			return false
+		}
+		b.probing = true
 		return true
 	default:
 		return true
