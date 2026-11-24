@@ -1,6 +1,6 @@
 # infergate
 
-A small grpc gateway that sits between my agents and every model they call.
+A small grpc gateway that sits between LLM agents and every model they call, so provider keys, fallbacks and budgets live in one place. I built it for the agents of a sportsbook platform, which is the worked example in the config and the commands below.
 
 Agents never hold provider keys and never pick a backend. They ask for a route alias like `brief-drafter` or just a tier, and the gateway decides who serves it. That gave me one place to put the things every agent was reimplementing badly.
 
